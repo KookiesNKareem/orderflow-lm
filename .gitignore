@@ -1,0 +1,9 @@
+data/
+checkpoints/
+*.csv.gz
+*.parquet
+*.pt
+__pycache__/
+*.egg-info/
+.venv/
+deep.log
