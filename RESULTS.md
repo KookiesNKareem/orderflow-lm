@@ -84,3 +84,135 @@ lag 100) — rollouts over-trend after trades instead of mean-reverting. n(gen t
 Size-conditioned impact at lag 20 reproduces the real (non-monotone) tercile ordering
 on ETH and BTC. This is the tier-3 result in embryo: the simulator responds to order
 flow like a real market at horizons up to ~0.5s, and over-responds beyond.
+
+## Injection pilot: causal response to exogenous trades (2026-07-19, SOL)
+
+Go/no-go gate for the reactive backtester: does v2 react to a trade it didn't
+generate? Design: 48 seeds (1532 tok, cut at event boundaries, July holdout),
+five arms per seed sharing the context — marketable BUY/SELL at the touch
+(offset 0) injected as 4 appended tokens, at median trade size (d1) and +3
+buckets (d2), plus no-injection control. Arms generated under identical
+per-batch torch seeds (CRN), 2500 new tokens each, so the paired
+(R_buy − R_sell)/2 is a causal impact response. `scripts/pilot_inject.py`,
+streams + json in `eval_out/pilot/`.
+
+- **Sign**: paired response positive, bootstrap CI > 0, lags 1–30 (both doses;
+  d2 through lag 50). Control drift ≈ 0. Grammar stable under injection
+  (illegal mass 0.0006, unchanged); spread/crossed marginals match control.
+- **Dose**: d2 > d1 at nearly all lags (l=50: +0.42 vs +0.07 ticks). Concave.
+- **Magnitude, vs the right yardstick**: injected response ~0.2 ticks (frame
+  clock) is 5× below real R(l) ≈ 1.15 — but R(l) is ~93% correlated-flow herd.
+  Deconvolving real R with sign ACF C under the propagator model
+  (`scripts/eval_propagator.py`, trade clock, 295k trades) gives a bare kernel
+  G_real plateauing at +0.028–0.034 ticks (lags 16–24). Injected d1 there:
+  +0.033–0.036 — **agreement within ~20%**, untrained and under intervention.
+- **Induced herding**: net sign of the model's next generated trade after a
+  buy vs sell injection is +0.48, decaying to +0.14 by lag 32 — a partial
+  metaorder read into one exogenous trade (real conditional C(1) = 0.835,
+  model endogenous C_gen(1) = 0.868). So injected response = bare + induced,
+  sitting above G_real as theory requires: G_real ≤ inj < R_real, all measured.
+
+Caveats: SOL is the best-scorecard symbol (BTC falsification below); square
+64×64 deconvolution fits exactly, so rms is vacuous — per-segment
+sd (±0.002–0.004) is the error bar; G_real slightly negative at lags 1–3
+(near-collinear C at l=1 0.835 + bounce artifact); G_gen unstable past lag 16
+(5.3k trades). Pilot infra: per-batch resume cache in `eval_out/pilot/parts_*`;
+~65 min per symbol on MPS at ~155 tok/s, minutes on a pod.
+
+## BTC falsification of the injection test (2026-07-20, pod)
+
+Purpose: a pass is only informative if the test can fail. Ran the identical
+48-seed pilot + propagator on BTC, the symbol with known deep-eval defects
+(impact overshoot, excess sign persistence, super-diffusion). It should fail —
+and does, discriminating a usable simulator from an unusable one.
+
+- **No resolvable causal signal.** Injected d1 CIs span zero at every lag
+  (l=8: −2.23 [−6.24, +0.02]). Where SOL's 48 seeds pinned the response to
+  ±0.02 ticks, BTC's give ±6 — the ~0.2-tick bare impact is swamped by the
+  model's own super-diffusive price wander.
+- **G_gen diverges**: endogenous kernel blows to +14 ticks at lag 24 vs
+  G_real +0.42, echoing the deep-eval impact overshoot.
+- Honest limit: the wide CIs mean BTC's true causal response could be
+  right-signed-but-buried rather than broken; 48 seeds can't tell. But a
+  simulator whose own noise makes impact unmeasurable at a sample size where a
+  good one is crisp cannot support agent evaluation. The instrument
+  discriminates; that is the result. `eval_out/pilot/propagator_BTCUSDT.json`.
+
+Infra note (pod): GPU is Blackwell sm_120; the preinstalled torch 2.4/cu124
+lacks kernels — needs torch 2.8+cu128. Generation ~1,170 tok/s at batch 48
+(≈7.5× MPS). K-segment runs OOM at batch 64 on 24 GB (full 2048 KV cache per
+row); batch 32 + PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True fits.
+
+## PnL-gap experiment (2026-07-20, SOL, pod)
+
+The payoff test: how much does a replay backtest understate execution cost vs a
+reactive sim that pushes back? A TWAP taker buys a fixed quantity as K=8
+marketable child orders at the touch, evenly spaced (spacing 250). Three arms,
+128 seeds, doses = size buckets {6,9,12,15} (≈ ⅛×, 1×, 8×, 64× the median
+trade): naive replay (recorded future, no reaction), reactive (children
+injected, market reacts), reactive control (no trading, counterfactual).
+Impact = reactive − control shortfall, drift removed by CRN.
+`scripts/pnl_gap.py`, `eval_out/pnl/pnlgap_SOLUSDT.json`.
+
+| dose | rel size | reactive impact (ticks/unit) [CI] |
+|---|---|---|
+| 6  | 1×   | +0.281 [+0.15, +0.41] |
+| 9  | 8×   | +0.261 [+0.14, +0.38] |
+| 12 | 64×  | +0.410 [+0.27, +0.55] |
+| 15 | 512× | +0.636 [+0.50, +0.78] |
+
+- **Replay hides a real, size-growing cost.** Naive impact = 0 by construction;
+  reactive charges +0.28→+0.64 ticks/unit, rising with size, all CIs clear of
+  zero. Replay's zero-impact assumption is wrong and increasingly wrong with
+  aggressiveness — the "backtests lie" failure mode, measured.
+- **Shape is NOT square-root-through-origin** (initial R²=−0.38 was a
+  misspecified no-intercept fit). A floor+√ fits: impact = 0.248 + 0.017·√size,
+  R²=0.976. Log-log exponent β=0.14 (√ law = 0.5): far more concave than the
+  textbook, with a ~0.25-tick spread-crossing floor paid even by tiny orders.
+- Calibration note: generated no-trade baseline (ctrl shortfall 0.51 ticks)
+  runs ~0.14 above the real recorded baseline (naive 0.37) — impact numbers are
+  drift-removed so internally clean, but the sim's absolute spread/drift
+  baseline sits slightly high.
+- Limits: 4 coarse power-of-2 dose points (shape, not a precise coefficient);
+  SOL only, K=8, single TWAP schedule; dose 6→9 flat within noise (both on the
+  floor).
+
+## Real-data validation of size scaling (2026-07-20, SOL, pod)
+
+Resolves "is the too-flat curve a model defect or a real feature?" — never
+validate against a textbook law, only against real data measured identically.
+Size-conditioned response R(l=20 | size bucket), same estimator on 427k real
+trades (val.bin) and the pilot's endogenous generated trades.
+`scripts/eval_size_impact.py`, `eval_out/pnl/sizeimpact_SOLUSDT.json`.
+
+| bucket | real R (ticks) | gen R | n_real | n_gen |
+|---|---|---|---|---|
+| 6  | 1.22 | 0.96 | 145k | 1706 |
+| 9  | 1.08 | 0.81 | 88k  | 1227 |
+| 12 | 1.23 | 0.61 | 104k | 1219 |
+| 15 | 1.17 | 0.69 | 60k  | 739  |
+
+- **The √-law worry was a false alarm.** Real SOL's per-trade response is FLAT
+  in size (exponent β=+0.001): a 64×-larger real trade moves price no more at
+  lag 20. So β=0.5 does not appear in this estimator on REAL data either — the
+  √ law (metaorders vs daily volume) was the wrong benchmark for a second-scale
+  per-trade experiment. The model not following √ is fine; reality doesn't here.
+- **Model reproduces real size-behavior, mildly under-reactive.** Gen exponent
+  β=−0.06 vs real +0.00 (slightly declining vs flat), level ~20–35% low. So the
+  model is faithful in-distribution with a documented mild under-reaction at
+  large size → the causal PnL curve if anything UNDER-states large-order impact.
+- **Causal (injection, rising) vs conditional (endogenous, flat) scale
+  oppositely, correctly.** Conditional flatness is selection (big real trades
+  placed when liquid); injection removes selection so causal rises. The model
+  reproducing the conditional flatness is evidence its mechanism is sound.
+- Permanent limit: conditional ≠ causal. This validates fidelity to real
+  size-behavior, not the causal magnitude directly — true causal validation
+  needs real intervention data, which does not exist.
+
+Summary of the arc: injection gate PASS on SOL (causal, dose-ordered, magnitude
+within 20% of the deconvolved real kernel) → falsification PASS (BTC fails the
+same test, so it discriminates) → PnL gap measured (replay hides +0.28→0.64
+ticks/unit, size-growing) → real-data check (model's size scaling matches real,
+mildly conservative; √-law deviation was a benchmark mismatch, not a defect).
+Open: PnL gap is SOL/one-schedule; absolute causal magnitude unvalidatable
+without real intervention data; model runs modestly low on impact level.

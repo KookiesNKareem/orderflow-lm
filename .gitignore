@@ -7,3 +7,8 @@ __pycache__/
 *.egg-info/
 .venv/
 deep.log
+.DS_Store
+eval_out/*.log
+eval_out/pilot_smoke/
+eval_out/pilot/parts_*/
+*.npz
