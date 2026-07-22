@@ -1,24 +1,4 @@
-"""Paired-injection impact pilot: does the model causally react to trades it
-didn't generate itself?
-
-The deep eval measured impact on endogenous trades (the model's own flow). An
-agent's order is off-policy, so before building a reactive backtester we check
-that an *injected* trade moves the generated market with the right sign, a
-monotone dose response, and plausible magnitude.
-
-Design: each seed window is cut so it ends exactly at an event boundary, then
-five arms share it — a marketable BUY or SELL at the touch (offset 0) at two
-size doses, plus a no-injection control. Injection is just four tokens appended
-to the seed ([DT][TRADE_*][TOFF=at-best][TSIZE]), so generation code is
-untouched. The buy and sell streams differ by one token, and arms are generated
-under identical torch RNG seeds (common random numbers), so the paired mid
-difference (R_buy - R_sell)/2 is a causal impact response.
-
-Usage:
-  python3 scripts/pilot_inject.py --bin data/tokens_v2/val.bin \
-      --ckpt checkpoints/pod/v2.pt --symbol SOLUSDT --seeds 48
-  python3 scripts/pilot_inject.py --analyze-only --symbol SOLUSDT
-"""
+"""Run paired trade-injection experiments under common random numbers."""
 
 import argparse
 import json
@@ -43,7 +23,11 @@ def cut_seeds(data, start, end, n, seed_len):
     """Windows of exactly seed_len ending at an event boundary (a Δt token
     starts the next event; Δt ids 2..33 appear only as Δt, so boundaries are
     findable without grammar state). Windows containing BOS/SYM are skipped."""
-    anchors = np.linspace(start + seed_len + 1000, end - 5000, n * 2).astype(int)
+    # n primary anchors spanning the full region; midpoint fallbacks absorb
+    # rejections without biasing coverage toward the region's start.
+    lo, hi = start + seed_len + 1000, end - 5000
+    anchors = np.concatenate([np.linspace(lo, hi, n).astype(int),
+                              np.linspace(lo, hi, 2 * n + 1).astype(int)[1::2]])
     seeds, used = [], []
     for a in anchors:
         if len(seeds) == n:
@@ -101,8 +85,11 @@ def run_generation(args, out_dir):
     sym_id = SYMBOLS[args.symbol]
     regions = [(s, e) for sid, s, e in find_regions(np.asarray(data)) if sid == sym_id]
     region = max(regions, key=lambda r: r[1] - r[0])
-    print(f"{args.symbol}: {len(regions)} region(s), using largest "
-          f"({(region[1] - region[0]) / 1e6:.1f}M tokens)", flush=True)
+    f0, f1 = (float(x) for x in args.span.split(","))
+    s0, e0 = region
+    region = (int(s0 + f0 * (e0 - s0)), int(s0 + f1 * (e0 - s0)))
+    print(f"{args.symbol}: {len(regions)} region(s), using largest, "
+          f"span [{f0},{f1}] -> {(region[1] - region[0]) / 1e6:.1f}M tokens", flush=True)
     seeds, used = cut_seeds(data, *region, args.seeds, SEED_LEN)
     if len(seeds) < args.seeds:
         print(f"WARNING: only {len(seeds)}/{args.seeds} usable seeds", flush=True)
@@ -129,8 +116,15 @@ def run_generation(args, out_dir):
                 t0 = time.time()
                 continue
             batch = [arm_seed(seeds[i], arm, *params[i]) for i in batch_idx]
-            torch.manual_seed(1000 + b0)  # same seed across arms: CRN pairing
-            outs, gstats = generate_batch(model, batch, args.new_tokens, 1.0, device)
+            # same seed across arms (CRN pairing); unique per batch and symbol
+            torch.manual_seed(1000 + b0 + 1_000_000 * tk.SYMBOLS[args.symbol])
+            row_seeds = None
+            if args.pcrn:
+                # positional CRN: per-window noise streams shared across arms
+                row_seeds = [20_000_000 * (1 + tk.SYMBOLS[args.symbol]) + i
+                             for i in batch_idx]
+            outs, gstats = generate_batch(model, batch, args.new_tokens, 1.0,
+                                          device, row_seeds=row_seeds)
             for pos, i in enumerate(batch_idx):
                 streams[arm][i] = np.array(batch[pos] + outs[pos], dtype=np.uint16)
             np.save(part, np.stack([streams[arm][i] for i in batch_idx]))
@@ -241,6 +235,10 @@ def main():
     p.add_argument("--batch", type=int, default=16)
     p.add_argument("--new-tokens", type=int, default=2500)
     p.add_argument("--out", default="eval_out/pilot")
+    p.add_argument("--span", default="0,1",
+                   help="fractional sub-span of the region to sample, e.g. 0.5,1")
+    p.add_argument("--pcrn", action="store_true",
+                   help="positional common random numbers across arms (Gumbel)")
     p.add_argument("--analyze-only", action="store_true")
     args = p.parse_args()
 

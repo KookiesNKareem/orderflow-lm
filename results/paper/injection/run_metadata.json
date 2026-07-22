@@ -1,0 +1,37 @@
+{
+  "run": "final2kg",
+  "date_generated": "2026-07-21",
+  "pcrn": true,
+  "sampler": "gumbel-argmax positional CRN, per-window noise stream advanced per output position, shared across arms",
+  "row_seed_rule": "20_000_000*(1+symbol_id) + window_index (arm-independent)",
+  "n_seeds": 2048,
+  "span": [
+    0,
+    1
+  ],
+  "batch": 64,
+  "arms": [
+    "buy_d1",
+    "sell_d1",
+    "buy_d2",
+    "sell_d2",
+    "ctrl"
+  ],
+  "new_tokens": 2500,
+  "seed_len": 1532,
+  "checkpoint": "checkpoints/pod/v2.pt",
+  "checkpoint_sha256": "fc169c045ffec13802a7f83c4b44ba61243316e4ec6dfb9c555afc77b4b4c4b5",
+  "git_head": "1953dfa27be4cfdf69425a5b91bb14b769931f6f",
+  "source_state": "dirty working tree; exact evaluated source files are identified by the SHA-256 hashes below",
+  "script_sha256": {
+    "src/oflm/generate.py": "8c530bdba295868953554016c7c152a2153c3b6220129570b761c20e54b688b0",
+    "scripts/pilot_inject.py": "61fb1db96e7106468ff9e2ef92238197ef492805d30fe15ff16d702b81e766f2",
+    "scripts/eval_causal_stats.py": "72adc69a9e5c1482a65d5a1d08744a60b332b63295876c7e3289ec9ea8c7c65e",
+    "scripts/eval_kernel_robust.py": "feab910dc8c42fa02d623b106857f3ec9a028b5d8d5d2b75aa51a92955dd9cb3"
+  },
+  "kernel_robust": {
+    "segs": 12,
+    "seg_len": 1000000
+  },
+  "causal_stats_note": "causal_stats_*.json regenerated locally with the recentred ratio bootstrap (kernel draws recentred on the propagator-plateau kernel)"
+}

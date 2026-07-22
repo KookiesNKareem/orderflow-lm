@@ -1,25 +1,4 @@
-"""Bare-impact kernel G(l) via propagator deconvolution, vs injected response.
-
-The measured response function R(l) = E[eps_i * (m_{i+l} - m_i)] / 2 conflates
-the causal impact of trade i with the impact of the correlated trades around it
-(sign ACF C(l)). Under the propagator model (impacts add linearly),
-
-    m_i = sum_{j < i} G(i - j) * eps_j + noise
-    R(l) = sum_{m >= 1} [C(|m - l|) - C(m)] * G(m)
-
-so with R and C measured on the same trade-time grid, G is the solution of a
-linear system. G(l) is the real-data estimate of what the injection pilot
-measures by intervention: the price path caused by one uncorrelated trade.
-
-Everything here runs in TRADE time (lag = trades, not frames), so the injected
-paired response is recomputed on that clock for a like-for-like comparison.
-Also measured: induced flow C_inj(l) — the net sign of the l-th generated trade
-after a buy vs sell injection — i.e. how much herd the model reads into one
-exogenous trade.
-
-Usage:
-  python3 scripts/eval_propagator.py --bin data/tokens_v2/val.bin --symbol SOLUSDT
-"""
+"""Estimate the bare impact kernel from real and generated order flow."""
 
 import argparse
 import json

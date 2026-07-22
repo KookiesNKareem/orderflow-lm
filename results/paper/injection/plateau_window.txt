@@ -1,0 +1,6 @@
+BTCUSDT d1: plateau inj -0.3813 [-0.6362,-0.1453]  kernel +0.4233
+BTCUSDT d2: plateau inj -0.4347 [-0.6927,-0.1849]  kernel +0.4233
+ETHUSDT d1: plateau inj +0.1234 [+0.0441,+0.1955]  kernel +0.1748
+ETHUSDT d2: plateau inj -0.0587 [-0.1195,-0.0003]  kernel +0.1748
+SOLUSDT d1: plateau inj +0.0330 [+0.0188,+0.0463]  kernel +0.0317
+SOLUSDT d2: plateau inj +0.0420 [+0.0287,+0.0539]  kernel +0.0317

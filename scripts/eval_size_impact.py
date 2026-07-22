@@ -1,21 +1,4 @@
-"""Size-conditioned response R(l | size bucket), real vs model, identical
-estimator. Tests whether the model reacts to LARGE trades the way the real
-market does, or under-reacts (the out-of-distribution hypothesis behind the
-too-flat PnL-gap curve).
-
-For each trade of size bucket b, R(l|b) = E[sign * (mid_{i+l} - mid_i)] / 2 in
-ticks. Computed the same way on:
-  real  - SOL segments from val.bin
-  gen   - the pilot's control-arm rollouts (endogenous, unconstrained generation)
-Herding contamination is present in both and cancels in the comparison (SOL sign
-ACF already matches real). We report R at a fixed lag vs size, the log-log
-scaling exponent for each, and overlay the CAUSAL injection impact (pnl_gap /
-pilot) at the same sizes — if causal << conditional, that is direct evidence the
-model under-reacts to off-policy large trades specifically.
-
-Usage:
-  python3 scripts/eval_size_impact.py --symbol SOLUSDT --buckets 6,9,12,15
-"""
+"""Compare response scaling across real and injected trade sizes."""
 
 import argparse
 import json

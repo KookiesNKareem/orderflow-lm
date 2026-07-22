@@ -1,15 +1,4 @@
-"""Download Tardis.dev free first-of-month datasets.
-
-Only day-01 files are free (no API key), so dates are generated as the first
-of each month in [--start, --end]. Files land in
-data/raw/{exchange}/{data_type}/{symbol}/{YYYY-MM-DD}.csv.gz and existing
-files whose size matches the remote Content-Length are skipped, so the
-script is safe to re-run.
-
-Usage:
-  python scripts/download.py --exchange binance-futures --symbols BTCUSDT \
-      --types incremental_book_L2 trades --start 2026-01 --end 2026-07
-"""
+"""Download free first-of-month market data from Tardis.dev."""
 
 import argparse
 import sys

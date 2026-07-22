@@ -1,16 +1,4 @@
-"""Per-symbol realism scorecard + price-impact response function.
-
-For each symbol region in the holdout bin: real segments vs constrained model
-rollouts, compared on marginals (spread/depth/rates, KS with per-symbol noise
-floor) and on the impact response R(l) = E[sign_t * (mid_{t+l} - mid_t)] in
-ticks over frame lags l, plus size-conditioned impact at a fixed lag (real
-tercile boundaries applied to both pools). Rollouts are long (--new-tokens)
-so R(l) has support out to the largest lag.
-
-Usage (pod):
-  python3 scripts/eval_stratified.py --bin data/tokens/val.bin \
-      --ckpt checkpoints/v2.pt --seeds 4 --new-tokens 12000
-"""
+"""Evaluate generated order flow separately by symbol."""
 
 import argparse
 import sys

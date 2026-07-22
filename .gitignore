@@ -1,14 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local datasets, checkpoints, and run artifacts
 data/
 checkpoints/
-*.csv.gz
-*.parquet
-*.pt
-__pycache__/
-*.egg-info/
-.venv/
-deep.log
-.DS_Store
-eval_out/*.log
-eval_out/pilot_smoke/
-eval_out/pilot/parts_*/
+eval_out*/
+pilot_results/
+logs/
+*.log
+*.npy
 *.npz
+*.pt
+*.parquet
+*.csv.gz
+
+# LaTeX intermediates; keep source, figures, and main.pdf
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.out
+paper/*.synctex.gz
+
+# OS and editor files
+.DS_Store
+*.swp
+*~

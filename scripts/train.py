@@ -1,9 +1,4 @@
-"""Train the order-flow GPT on tokenized .bin streams.
-
-Usage:
-  python scripts/train.py --train data/tokens/train.bin --val data/tokens/val.bin \
-      --steps 2000 --batch 8
-"""
+"""Train the decoder-only order-flow transformer."""
 
 import argparse
 import contextlib

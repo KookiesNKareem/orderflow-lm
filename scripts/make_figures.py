@@ -1,5 +1,4 @@
-"""Blog figures from eval_out/deep_*.json, styled to match the site's existing
-matplotlib SVGs: transparent background, #8a929c ink, series green/amber."""
+"""Build figures from deep-evaluation outputs."""
 
 import json
 import sys

@@ -1,11 +1,4 @@
-"""Streaming stats over a raw Tardis incremental_book_L2 file.
-
-Maintains the book from the initial snapshot and reports the distributions
-that drive tokenizer design: batch sizes per exchange timestamp, inter-batch
-gaps, update distance from same-side best, spread, and delete share.
-
-Usage: python scripts/explore_raw.py data/raw/.../2026-06-01.csv.gz [max_rows]
-"""
+"""Summarize raw incremental-book and trade feeds."""
 
 import csv
 import gzip

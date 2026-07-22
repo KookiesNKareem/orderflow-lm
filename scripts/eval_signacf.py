@@ -1,18 +1,4 @@
-"""Order-sign memory: autocorrelation of trade signs, real vs generated.
-
-Real markets show slow power-law decay (ACF ~ l^-gamma, gamma ~ 0.5-0.7)
-persisting for hundreds of trades — one of the most robust stylized facts and
-a direct probe of the impact over-trending failure: too much sign persistence
-means impact accumulates instead of plateauing.
-
-Per symbol: real signs from the holdout region, generated signs from batched
-constrained rollouts. ACF pooled across sequences (covariances summed, then
-normalized); exponent fit by log-log regression over positive lags.
-
-Usage:
-  python scripts/eval_signacf.py --bin data/tokens_v2/val.bin \
-      --ckpt checkpoints/pod/v2.pt --batch 6 --new-tokens 16000
-"""
+"""Measure order-sign memory in generated and real order flow."""
 
 import argparse
 import sys

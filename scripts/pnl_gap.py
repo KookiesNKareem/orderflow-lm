@@ -1,31 +1,4 @@
-"""PnL-gap experiment: how much does replay understate execution cost vs a
-reactive simulator that pushes back when you trade?
-
-A TWAP taker buys a fixed quantity as K marketable child orders (at the touch,
-offset 0), evenly spaced over a horizon. Three arms share each seed:
-
-  naive    fills at the RECORDED future's touch prices; the market never reacts.
-           Impact is 0 by construction (this is the replay backtest's blind spot).
-  reactive each child order is injected into the LM as a trade; the generated
-           market reacts, and fills are read off the evolving generated book.
-  control  reactive market, NO trading — the counterfactual price path. Its
-           checkpoint mids are subtracted from `reactive` to isolate the
-           executor's own impact from background drift (common random numbers).
-
-Cost = implementation shortfall = mean child fill price - arrival mid, in ticks
-per unit. We sweep participation (child size bucket) to trace impact vs size and
-compare against a square-root-law fit.
-
-Reactivity forces regeneration after every injection, so this is a K-segment
-generate_batch loop: generate `spacing` tokens, trim to the last event boundary,
-splice the child order, regenerate. Fills are read by replaying the prefix at
-each checkpoint (warmup_frames=0) and taking (mid2 + spread)/2 = best ask.
-
-Usage:
-  python3 scripts/pnl_gap.py --symbol SOLUSDT --seeds 128 --batch 64 \
-      --k-children 8 --spacing 250 --doses 6,9,12,15
-  python3 scripts/pnl_gap.py --symbol SOLUSDT --analyze-only
-"""
+"""Measure execution cost in replay and the reactive simulator."""
 
 import argparse
 import json
@@ -45,7 +18,9 @@ SEED_LEN = 1532
 
 def cut_seeds(data, start, end, n, seed_len):
     """Windows of exactly seed_len ending at an event boundary, no BOS/SYM."""
-    anchors = np.linspace(start + seed_len + 1000, end - 40000, n * 2).astype(int)
+    lo, hi = start + seed_len + 1000, end - 40000
+    anchors = np.concatenate([np.linspace(lo, hi, n).astype(int),
+                              np.linspace(lo, hi, 2 * n + 1).astype(int)[1::2]])
     seeds = []
     for a in anchors:
         if len(seeds) == n:
@@ -116,20 +91,23 @@ def run(args, out_dir):
     sym_id = SYMBOLS[args.symbol]
     regions = [(s, e) for sid, s, e in find_regions(np.asarray(data)) if sid == sym_id]
     start, end = max(regions, key=lambda r: r[1] - r[0])
+    f0, f1 = (float(x) for x in args.span.split(","))
+    start, end = int(start + f0 * (end - start)), int(start + f1 * (end - start))
     seeds = cut_seeds(data, start, end, args.seeds, SEED_LEN)
     dtbs = [median_inj(s) for s, _ in seeds]
     doses = [int(x) for x in args.doses.split(",")]
     print(f"{len(seeds)} seeds, K={args.k_children}, spacing={args.spacing}, "
           f"doses={doses}", flush=True)
 
-    def gen_segments(batch_seeds, inject_fn):
+    def gen_segments(batch_seeds, inject_fn, b0):
         """K-segment generation. inject_fn(round, row) -> per-row child tokens or
         None. Returns per-row checkpoint asks and the arrival mid."""
         streams = [list(s) for s in batch_seeds]
         arrival = [mid_ticks(s) for s in streams]
         fills = [[] for _ in streams]
         for r in range(args.k_children):
-            torch.manual_seed(4000 + r)  # CRN: same background draws across arms
+            # CRN across arms and doses; unique per context batch
+            torch.manual_seed(4000 + r + 1009 * b0)
             outs, _ = generate_batch(model, streams, args.spacing, 1.0, device)
             trimmed, _ = common_trim([streams[i] + outs[i] for i in range(len(streams))])
             for i in range(len(streams)):
@@ -153,7 +131,7 @@ def run(args, out_dir):
 
             # reactive arm: inject child order every round
             rfill, rarr, _ = gen_segments(
-                bseeds, lambda r, i: child_tokens(dtbs[bi[i]], dose))
+                bseeds, lambda r, i: child_tokens(dtbs[bi[i]], dose), b0)
             # control arm: same generation, no injection (read ask at checkpoints)
             cfill, carr, _ = gen_segments_ctrl(
                 bseeds, args, model, generate_batch, device, dtbs, bi)
@@ -193,7 +171,7 @@ def gen_segments_ctrl(bseeds, args, model, generate_batch, device, dtbs, bi):
     arrival = [mid_ticks(s) for s in streams]
     fills = [[] for _ in streams]
     for r in range(args.k_children):
-        torch.manual_seed(4000 + r)
+        torch.manual_seed(4000 + r + 1009 * bi[0])
         outs, _ = generate_batch(model, streams, args.spacing, 1.0, device)
         trimmed, _ = common_trim([streams[i] + outs[i] for i in range(len(streams))])
         for i in range(len(streams)):
@@ -268,6 +246,8 @@ def main():
     p.add_argument("--spacing", type=int, default=250)
     p.add_argument("--doses", default="6,9,12,15")
     p.add_argument("--out", default="eval_out/pnl")
+    p.add_argument("--span", default="0,1",
+                   help="fractional sub-span of the region to sample, e.g. 0.5,1")
     p.add_argument("--analyze-only", action="store_true")
     args = p.parse_args()
 

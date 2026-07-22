@@ -1,17 +1,4 @@
-"""Build the multi-year, multi-symbol corpus from Tardis free first-of-month days.
-
-For each (symbol, month): download L2 + trades, reconstruct to a normalized
-parquet, then delete the raw files (raw is ~1GB/day; parquet ~60MB). Safe to
-re-run — days with an existing parquet + sidecar are skipped. Missing days
-(symbol not listed yet) are recorded and skipped.
-
-Designed for the GPU pod: CPU-bound reconstruction parallelizes across
-workers while downloads overlap.
-
-Usage:
-  python3 scripts/build_corpus.py --symbols BTCUSDT ETHUSDT SOLUSDT \
-      --start 2021-01 --end 2026-07 --workers 12
-"""
+"""Build the multi-year, multi-symbol token corpus."""
 
 import argparse
 import os

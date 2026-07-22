@@ -1,13 +1,4 @@
-"""Sample from a trained checkpoint and decode tokens back into events.
-
-Seeds with a real context window from a tokens .bin, generates a continuation,
-and prints both a human-readable event log and summary stats (event mix, grammar
-violations, implied simulated wall-clock time).
-
-Usage:
-  python scripts/sample.py --ckpt checkpoints/v0.pt --seed-bin data/tokens/val.bin \
-      --new-tokens 2000
-"""
+"""Generate and decode an order-flow sample."""
 
 import argparse
 import sys

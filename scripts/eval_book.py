@@ -1,20 +1,4 @@
-"""Book-applier evaluation.
-
-validate: replay real tokenized data through the Book applier and compare
-  frame-end spread and mid-price changes against the reconstruction parquet
-  (ground truth). The match rate measures how much book state the token
-  representation actually carries (deep out-of-band changes are its known gap).
-
-compare: spread/depth/event-rate distributions for model rollouts vs real
-  data, with a real-vs-real noise floor. KS distances; the model "passes" a
-  metric when real-vs-gen is close to the real-vs-real floor.
-
-Usage:
-  python scripts/eval_book.py validate --bin data/tokens/val.bin \
-      --parquet data/normalized/BTCUSDT/2026-06-01.parquet --tokens 3000000
-  python scripts/eval_book.py compare --bin data/tokens/val.bin \
-      --ckpt checkpoints/v0.1.pt --seeds 12 --new-tokens 4000
-"""
+"""Evaluate generated order-book realism."""
 
 import argparse
 import sys

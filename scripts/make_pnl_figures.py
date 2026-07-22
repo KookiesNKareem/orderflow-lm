@@ -1,5 +1,4 @@
-"""Blog figures for the PnL-gap post, styled to match the site's SVGs:
-transparent background, #8a929c ink, green = model/generated, grey = real/naive."""
+"""Build figures for the replay-gap experiment."""
 
 import json
 import sys

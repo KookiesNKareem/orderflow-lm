@@ -163,13 +163,24 @@ def generate(model, ctx, n_new: int, temp: float, device: str,
 
 
 @torch.no_grad()
-def generate_batch(model, seeds, n_new: int, temp: float, device: str):
+def generate_batch(model, seeds, n_new: int, temp: float, device: str,
+                   row_seeds=None):
     """Constrained generation for B equal-length seeds at once. Returns
     (list of B token lists, stats). One GrammarSampler per row; masks are
-    stacked so each row is constrained independently."""
+    stacked so each row is constrained independently.
+
+    row_seeds: optional per-row integer seeds enabling positional common
+    random numbers. Each row samples via Gumbel-argmax with noise from its own
+    generator, one vocab-sized draw per output position, so two calls sharing
+    row_seeds share sampling noise position-by-position regardless of how
+    their token histories diverge. The per-row marginal sampling law is the
+    exact masked softmax, identical to the multinomial path."""
     model.eval()
     block = model.c.block
     B = len(seeds)
+    gens = None
+    if row_seeds is not None:
+        gens = [torch.Generator().manual_seed(int(rs)) for rs in row_seeds]
     samplers = []
     for s in seeds:
         g = GrammarSampler()
@@ -186,9 +197,16 @@ def generate_batch(model, seeds, n_new: int, temp: float, device: str):
         probs = torch.softmax(logits[:, -1] / temp, dim=-1)
         mask = torch.stack([g.allowed() for g in samplers]).to(device)
         illegal_mass += probs.masked_fill(mask, 0).sum(dim=-1).mean().item()
-        probs = probs * mask
-        probs = probs / probs.sum(dim=-1, keepdim=True)
-        nxt = torch.multinomial(probs, 1).squeeze(-1)
+        if gens is None:
+            probs = probs * mask
+            probs = probs / probs.sum(dim=-1, keepdim=True)
+            nxt = torch.multinomial(probs, 1).squeeze(-1)
+        else:
+            gum = torch.stack([
+                -torch.log(-torch.log(torch.rand(tk.VOCAB, generator=g) + 1e-20)
+                           + 1e-20) for g in gens]).to(device)
+            lg = (logits[:, -1] / temp).masked_fill(~mask, float("-inf"))
+            nxt = (lg + gum).argmax(dim=-1)
         nxt_list = nxt.tolist()
         for b in range(B):
             outs[b].append(nxt_list[b])

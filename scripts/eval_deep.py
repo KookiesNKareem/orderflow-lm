@@ -1,19 +1,4 @@
-"""Deep realism analyses, one pass per symbol. All metrics computed from the
-same batched long rollouts (the expensive part) and matched real segments:
-
-  - order-sign ACF + power-law exponent
-  - return ACF (linear predictability), |return| ACF (volatility clustering)
-  - kurtosis across horizons, signature plot Var(r_D)/D
-  - impact response R(l) (high-res) and size-conditioned impact
-  - degradation: spread quantiles vs rollout depth (frames since seed)
-  - marginals (spread/depth/rates/crossed) with per-symbol KS + floors
-
-Emits eval_out/deep_{SYMBOL}.json for the figure scripts.
-
-Usage:
-  python3 scripts/eval_deep.py --bin data/tokens_v2/val.bin \
-      --ckpt checkpoints/pod/v2.pt --batch 8 --new-tokens 30000
-"""
+"""Evaluate distributional and temporal realism for one symbol."""
 
 import argparse
 import json

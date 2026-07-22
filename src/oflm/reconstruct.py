@@ -1,20 +1,4 @@
-"""Reconstruct a normalized event stream from raw Tardis L2 + trades files.
-
-Emits one chronological parquet of events per day:
-  kind=0 book-frame change: new absolute size at (side, offset from pre-frame
-         same-side best, in ticks), offset in [-16, 63]; size 0 = level deleted.
-         Price improvements beyond the band (offset < -16) are also emitted
-         (any magnitude, size > 0 only) for jump-escape tokenization.
-  kind=1 trade: side is the aggressor, offset from pre-trade same-side best
-         (buy vs best ask, sell vs best bid)
-
-Offsets are relative to the book state BEFORE the event so a generative model's
-output can be applied forward without self-reference. Book state is only read
-at frame boundaries (mid-frame state is transiently inconsistent). Changes
-outside the offset band are applied to the internal book but not emitted.
-
-Usage: python -m oflm.reconstruct <l2.csv.gz> <trades.csv.gz> <out.parquet> [max_l2_rows]
-"""
+# Reconstruct a normalized event stream from raw Tardis L2 + trades files.
 
 import csv
 import gzip
@@ -31,24 +15,25 @@ OFF_MIN, OFF_MAX = -16, 63
 
 
 def infer_tick(prices) -> float:
-    """Tick = GCD of price gaps in the snapshot (prices sit on the tick grid)."""
     ps = sorted(set(prices))
     g = 0
     for a, b in zip(ps, ps[1:]):
         g = math.gcd(g, round((b - a) * 1e8))
     assert g > 0, "could not infer tick size"
     return g / 1e8
+
+
 BATCH_ROWS = 2_000_000
 
 SCHEMA = pa.schema([
-    ("ts", pa.int64()),          # exchange timestamp, µs
-    ("kind", pa.uint8()),        # 0 = frame change, 1 = trade
-    ("new_frame", pa.bool_()),   # True on first change of each frame
-    ("side", pa.uint8()),        # 0 = bid/sell-side book, 1 = ask; trades: 0 = sell, 1 = buy
-    ("offset", pa.int32()),      # ticks from pre-event same-side best (2021 flash
+    ("ts", pa.int64()), # exchange timestamp, µs
+    ("kind", pa.uint8()), # 0 = frame change, 1 = trade
+    ("new_frame", pa.bool_()), # True on first change of each frame
+    ("side", pa.uint8()), # 0 = bid/sell-side book, 1 = ask; trades: 0 = sell, 1 = buy
+    ("offset", pa.int32()), # ticks from pre-event same-side best (2021 flash
                                  # moves exceed int16: observed |offset| > 34k ticks)
-    ("size", pa.float32()),      # absolute new level size, or trade amount
-    ("best_bid", pa.float64()),  # pre-event best (frame rows: post-frame best), for eval
+    ("size", pa.float32()), # absolute new level size, or trade amount
+    ("best_bid", pa.float64()), # pre-event best (frame rows: post-frame best), for eval
     ("best_ask", pa.float64()),
 ])
 

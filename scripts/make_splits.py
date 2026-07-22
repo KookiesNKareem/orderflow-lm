@@ -1,16 +1,4 @@
-"""Tokenize the multi-symbol corpus into walk-forward splits.
-
-train = every day <= --train-end (all symbols, chronological per symbol)
-val   = first half of each symbol's --holdout day
-test  = second half of each symbol's --holdout day
-
-Per-day tokenization runs in a process pool writing temp .bin files; the
-splits are then assembled by ordered append, so peak memory stays at one day.
-
-Usage (on the pod):
-  python3 scripts/make_splits.py --norm data/normalized --out data/tokens \
-      --train-end 2026-06-30 --holdout 2026-07-01 --workers 16
-"""
+"""Tokenize the corpus into walk-forward train, validation, and test splits."""
 
 import argparse
 import json
