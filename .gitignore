@@ -18,13 +18,13 @@ logs/
 *.csv.gz
 
 # LaTeX intermediates; keep source, figures, and main.pdf
-paper/*.aux
-paper/*.bbl
-paper/*.blg
-paper/*.fdb_latexmk
-paper/*.fls
-paper/*.out
-paper/*.synctex.gz
+paper/**/*.aux
+paper/**/*.bbl
+paper/**/*.blg
+paper/**/*.fdb_latexmk
+paper/**/*.fls
+paper/**/*.out
+paper/**/*.synctex.gz
 
 # OS and editor files
 .DS_Store

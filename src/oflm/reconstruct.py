@@ -29,6 +29,7 @@ SCHEMA = pa.schema([
     ("ts", pa.int64()), # exchange timestamp, µs
     ("kind", pa.uint8()), # 0 = frame change, 1 = trade
     ("new_frame", pa.bool_()), # True on first change of each frame
+    ("reset", pa.bool_()), # True on first event after a source snapshot
     ("side", pa.uint8()), # 0 = bid/sell-side book, 1 = ask; trades: 0 = sell, 1 = buy
     ("offset", pa.int32()), # ticks from pre-event same-side best (2021 flash
                                  # moves exceed int16: observed |offset| > 34k ticks)
@@ -85,7 +86,8 @@ def reconstruct(l2_path: str, trades_path: str, out_path: str, max_l2_rows: int)
 
     writer = pq.ParquetWriter(out_path, SCHEMA, compression="zstd")
     cols: list[list] = [[] for _ in SCHEMA]
-    n_out = n_frames = n_trades = n_resnap = 0
+    n_out = n_frames = n_trades = n_resnap = n_resets = 0
+    pending_reset = False
 
     def flush():
         nonlocal cols
@@ -95,8 +97,13 @@ def reconstruct(l2_path: str, trades_path: str, out_path: str, max_l2_rows: int)
             cols = [[] for _ in SCHEMA]
 
     def emit(ts, kind, new_frame, side, offset, size, bb, ba):
-        nonlocal n_out
-        for col, v in zip(cols, (ts, kind, new_frame, side, offset, size, bb, ba)):
+        nonlocal n_out, n_resets, pending_reset
+        event_start = kind == 1 or new_frame
+        reset = pending_reset and event_start
+        if reset:
+            pending_reset = False
+            n_resets += 1
+        for col, v in zip(cols, (ts, kind, new_frame, reset, side, offset, size, bb, ba)):
             col.append(v)
         n_out += 1
         if len(cols[0]) >= BATCH_ROWS:
@@ -173,6 +180,7 @@ def reconstruct(l2_path: str, trades_path: str, out_path: str, max_l2_rows: int)
                         cur_ts, changed = None, {}
                     bids.clear()
                     asks.clear()
+                    pending_reset = True
                 (bids if side_bid else asks).set(price, amount)
                 if tick is None and len(snap_prices) < 8000:
                     snap_prices.append(price)
@@ -201,9 +209,10 @@ def reconstruct(l2_path: str, trades_path: str, out_path: str, max_l2_rows: int)
     writer.close()
     with open(out_path + ".meta.json", "w") as f:
         json.dump({"tick": tick, "l2_rows": n_l2, "frames": n_frames,
-                   "trades": n_trades, "events": n_out, "snapshots": n_resnap}, f)
+                   "trades": n_trades, "events": n_out, "snapshots": n_resnap,
+                   "resets": n_resets}, f)
     print(f"l2 rows: {n_l2:,}  frames emitted: {n_frames:,}  trades: {n_trades:,}  "
-          f"events out: {n_out:,}  snapshots: {n_resnap}  tick: {tick}")
+          f"events out: {n_out:,}  snapshots: {n_resnap}  resets: {n_resets}  tick: {tick}")
 
 
 if __name__ == "__main__":

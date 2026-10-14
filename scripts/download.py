@@ -30,17 +30,23 @@ def download(exchange: str, data_type: str, symbol: str, date: str) -> str:
     dest = ROOT / exchange / data_type / symbol / f"{date}.csv.gz"
     dest.parent.mkdir(parents=True, exist_ok=True)
 
-# dest only exists post-rename, i.e. after a size-verified download
+    # dest only exists post-rename, i.e. after a size-verified download
     if dest.exists():
         return "skipped"
 
     tmp = dest.with_suffix(".part")
-    for attempt in range(3):
+    for attempt in range(6):
         try:
             # the datasets endpoint 404s on HEAD, so existence is probed via GET
             with requests.get(url, stream=True, timeout=60) as r:
                 if r.status_code == 404:
                     return "missing"
+                if r.status_code == 429:
+                    retry_after = float(r.headers.get("retry-after", 30))
+                    raise requests.RequestException(
+                        f"rate limited; retry after {retry_after:.0f}s",
+                        response=r,
+                    )
                 r.raise_for_status()
                 remote_size = int(r.headers.get("content-length", 0))
                 with open(tmp, "wb") as f:
@@ -51,10 +57,21 @@ def download(exchange: str, data_type: str, symbol: str, date: str) -> str:
             tmp.rename(dest)
             return f"downloaded {remote_size / 1e6:.0f}MB"
         except (requests.RequestException, IOError) as e:
-            if attempt == 2:
+            if attempt == 5:
                 raise
-            print(f"  retry {attempt + 1} after error: {e}", flush=True)
-            time.sleep(5 * (attempt + 1))
+            retry_after = 0.0
+            if isinstance(e, requests.RequestException) and e.response is not None:
+                retry_after = float(e.response.headers.get("retry-after", 0))
+            if retry_after > 600:
+                raise RuntimeError(
+                    f"provider daily quota reached; retry after {retry_after:.0f}s"
+                ) from e
+            delay = min(max(retry_after, 10 * (2**attempt)), 60)
+            print(
+                f"  retry {attempt + 1} in {delay:.0f}s after error: {e}",
+                flush=True,
+            )
+            time.sleep(delay)
 
 
 def main() -> None:

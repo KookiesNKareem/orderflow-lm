@@ -64,26 +64,40 @@ def tokenize_day(df: pl.DataFrame, sym_id: int | None = None) -> np.ndarray:
     offset = df["offset"].to_numpy().astype(np.int64)
     size = df["size"].to_numpy().astype(np.float64)
     new_frame = df["new_frame"].to_numpy()
+    reset = (df["reset"].to_numpy().astype(bool)
+             if "reset" in df.columns else np.zeros(len(df), dtype=bool))
 
     is_trade = kind == 1
     is_start = is_trade | new_frame                    # rows that begin an event
     is_esc = (kind == 0) & (offset < -16)              # jump-escape changes
     n = len(df)
+    start_idx = np.flatnonzero(is_start)
+    if not len(start_idx):
+        raise ValueError("day contains no complete events")
+    if (reset & ~is_start).any():
+        raise ValueError("reset marker must occur at an event boundary")
+    segment_start = reset & is_start
+    segment_start[start_idx[0]] = True
+    header_len = 1 if sym_id is None else 2
 
     # per-row token counts: trades 4; frame changes 2 (+2 for [DT][FRAME] header
-    # on the frame's first row, +2 for jump-escape encoding)
-    length = np.where(is_trade, 4, 2 + 2 * new_frame + 2 * is_esc)
-    hdr = 1 if sym_id is None else 2  # [BOS] or [BOS][SYM]
-    pos = np.concatenate(([hdr], hdr + np.cumsum(length)[:-1]))
-    total = hdr + int(length.sum())
+    # on the frame's first row, +2 for jump-escape encoding).  A [BOS] or
+    # [BOS][SYM] header precedes the first event after every source resnapshot.
+    event_length = np.where(is_trade, 4, 2 + 2 * new_frame + 2 * is_esc)
+    length = event_length + header_len * segment_start
+    row_start = np.concatenate(([0], np.cumsum(length)[:-1]))
+    pos = row_start + header_len * segment_start
+    total = int(length.sum())
     out = np.full(total, PAD, dtype=np.uint16)
-    out[0] = BOS
+    headers = row_start[segment_start]
+    out[headers] = BOS
     if sym_id is not None:
-        out[1] = SYM0 + sym_id
+        out[headers + 1] = SYM0 + sym_id
 
     # Δt tokens at event starts (Δt from previous event-start row)
-    start_idx = np.flatnonzero(is_start)
     dts = np.diff(ts[start_idx], prepend=ts[start_idx[0]])
+    # A new segment has no modeled predecessor, so its first Δt is zero.
+    dts[segment_start[start_idx]] = 0
     out[pos[start_idx]] = DT0 + dt_bucket(dts)
 
     # trades
