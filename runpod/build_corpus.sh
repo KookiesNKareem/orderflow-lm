@@ -13,7 +13,7 @@
 #   WORKERS=16 bash build_corpus.sh
 set -euo pipefail
 
-SYMBOLS=(BTCUSDT ETHUSDT SOLUSDT)
+SYMBOLS=(SOLUSDT ETHUSDT BTCUSDT)  # download order: free-tier quota is ~44 days/24h
 START=2021-01
 END=2026-10
 TRAIN_END=2026-06-01
