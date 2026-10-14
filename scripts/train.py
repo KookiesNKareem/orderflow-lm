@@ -56,6 +56,7 @@ def main():
     p.add_argument("--out", default="checkpoints/v0.pt")
     p.add_argument("--ckpt-every", type=int, default=500,
                    help="steps between full resumable checkpoints (<out>.last.pt)")
+    p.add_argument("--seed", type=int, default=1337)
     p.add_argument("--resume", action="store_true",
                    help="continue from <out>.last.pt if it exists (preemptible hosts)")
     args = p.parse_args()
@@ -66,8 +67,8 @@ def main():
         torch.backends.cudnn.allow_tf32 = True
     amp = (lambda: torch.autocast(device_type=device, dtype=torch.bfloat16)) if args.bf16 \
         else contextlib.nullcontext
-    torch.manual_seed(1337)
-    np.random.seed(1337)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     train_data = np.memmap(args.train, dtype=np.uint16, mode="r")
     val_data = np.memmap(args.val, dtype=np.uint16, mode="r")

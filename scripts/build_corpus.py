@@ -35,11 +35,19 @@ def fetch(data_type: str, symbol: str, date: str) -> Path | None:
     if dest.exists():
         return dest
     tmp = dest.with_suffix(".part")
-    for attempt in range(4):
+    for attempt in range(8):
         try:
             with requests.get(url, stream=True, timeout=120) as r:
                 if r.status_code == 404:
                     return None
+                if r.status_code == 429:
+                    # parallel workers share the provider's rate limit; back off as told
+                    retry_after = float(r.headers.get("retry-after", 30))
+                    if retry_after > 600:
+                        raise RuntimeError(
+                            f"provider daily quota reached; retry after {retry_after:.0f}s")
+                    time.sleep(retry_after)
+                    continue
                 r.raise_for_status()
                 size = int(r.headers.get("content-length", 0))
                 with open(tmp, "wb") as f:
@@ -50,9 +58,10 @@ def fetch(data_type: str, symbol: str, date: str) -> Path | None:
             tmp.rename(dest)
             return dest
         except (requests.RequestException, IOError) as e:
-            if attempt == 3:
+            if attempt == 7:
                 raise
-            time.sleep(10 * (attempt + 1))
+            time.sleep(min(10 * (attempt + 1), 60))
+    raise RuntimeError(f"still rate limited after retries: {url}")
 
 
 def process(job) -> str:
