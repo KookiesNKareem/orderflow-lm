@@ -54,6 +54,10 @@ def main():
     p.add_argument("--eval-every", type=int, default=250)
     p.add_argument("--bf16", action="store_true")
     p.add_argument("--out", default="checkpoints/v0.pt")
+    p.add_argument("--ckpt-every", type=int, default=500,
+                   help="steps between full resumable checkpoints (<out>.last.pt)")
+    p.add_argument("--resume", action="store_true",
+                   help="continue from <out>.last.pt if it exists (preemptible hosts)")
     args = p.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -100,9 +104,33 @@ def main():
         return 0.5 * (1 + math.cos(math.pi * t))
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    last_path = Path(args.out).with_suffix(".last.pt")
     best_val = float("inf")
+    start = 1
+    if args.resume and last_path.exists():
+        st = torch.load(last_path, map_location=device, weights_only=False)
+        model.load_state_dict(st["model"])
+        for o, so in zip(opts, st["opts"]):
+            o.load_state_dict(so)
+        best_val, start = st["best_val"], st["step"] + 1
+        np.random.set_state(st["np_rng"])
+        torch.set_rng_state(st["torch_rng"].cpu())
+        if device == "cuda" and st.get("cuda_rng") is not None:
+            torch.cuda.set_rng_state(st["cuda_rng"].cpu())
+        print(f"resumed from {last_path} at step {st['step']} (best val {best_val:.4f})", flush=True)
+
+    def save_last(step):
+        # write-then-rename so a preemption mid-save never corrupts the last good state
+        tmp = last_path.with_suffix(".tmp")
+        torch.save({"model": model.state_dict(), "opts": [o.state_dict() for o in opts],
+                    "config": cfg.__dict__, "step": step, "best_val": best_val,
+                    "np_rng": np.random.get_state(), "torch_rng": torch.get_rng_state(),
+                    "cuda_rng": torch.cuda.get_rng_state() if device == "cuda" else None,
+                    "args": vars(args)}, tmp)
+        tmp.replace(last_path)
+
     t0 = time.time()
-    for step in range(1, args.steps + 1):
+    for step in range(start, args.steps + 1):
         f = lr_factor(step)
         for o in opts:
             for g in o.param_groups:
@@ -118,7 +146,7 @@ def main():
             o.step()
 
         if step % 50 == 0:
-            tps = step * args.batch * args.block / (time.time() - t0)
+            tps = (step - start + 1) * args.batch * args.block / (time.time() - t0)
             print(f"step {step}: train_loss {loss.item():.4f}  ({tps:,.0f} tok/s)", flush=True)
         if step % args.eval_every == 0 or step == args.steps:
             vl = eval_loss(model, val_data, args.batch, args.block, device, amp)
@@ -127,6 +155,8 @@ def main():
                 best_val = vl
                 torch.save({"model": model.state_dict(), "config": cfg.__dict__,
                             "step": step, "val_loss": vl}, args.out)
+        if step % args.ckpt_every == 0 or step == args.steps:
+            save_last(step)
     print(f"done. best val {best_val:.4f} -> {args.out}", flush=True)
 
 
