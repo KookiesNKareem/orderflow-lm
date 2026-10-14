@@ -18,5 +18,7 @@ Before step 2, check `probe.json`: `upper_bound_normalized_gb` sizes the volume
 Splits: train 2021-01-01..2026-06-01, validation 2026-07-01, test 2026-08-01,
 2026-09-01, 2026-10-01 (free first-of-month Tardis days, three symbols).
 
-Checkpoints land in `/workspace/checkpoints/` with a `.sha256`. Set `HF_REPO`
-(and `HF_TOKEN`) when running `train.sh` to also upload them off the volume.
+Checkpoints land in `/workspace/checkpoints/` with a `.sha256`, and `train.sh`
+copies both to Google Drive (`gdrive:oflm/checkpoints` by default, override with
+`GDRIVE_DEST`). Authorize Drive once per volume with `bash gdrive_auth.sh` before
+the first training run.

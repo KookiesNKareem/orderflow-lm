@@ -22,6 +22,9 @@ if ! command -v uv >/dev/null; then
   curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 export PATH="$HOME/.local/bin:$PATH"
+if ! command -v rclone >/dev/null; then   # checkpoint backup to Google Drive
+  curl -fsSL https://rclone.org/install.sh | bash >/dev/null
+fi
 
 cd "$REPO"
 uv sync

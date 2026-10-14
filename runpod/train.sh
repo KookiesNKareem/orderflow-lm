@@ -9,12 +9,16 @@
 #
 #   SEED=1337 bash train.sh
 #   SEED=2027 bash train.sh          # second seed, for seed-to-seed variation
-#   HF_REPO=<user>/oflm bash train.sh   # also upload the best checkpoint (needs HF_TOKEN)
+#
+# The best checkpoint and its hash are copied to Google Drive (GDRIVE_DEST,
+# an rclone path) once training finishes. Run gdrive_auth.sh once per volume first.
 set -euo pipefail
 
 SEED=${SEED:-1337}
 STEPS=${STEPS:-25000}
 OUT=/workspace/checkpoints/oflm87m_seed${SEED}.pt
+GDRIVE_DEST=${GDRIVE_DEST:-gdrive:oflm/checkpoints}
+export RCLONE_CONFIG=/workspace/.config/rclone/rclone.conf
 
 export PATH="$HOME/.local/bin:$PATH" UV_CACHE_DIR=/workspace/.uv-cache
 cd /workspace/orderflow-lm
@@ -29,7 +33,5 @@ uv run python scripts/train.py \
   --seed "$SEED" --out "$OUT" --resume 2>&1 | tee -a "logs/train_seed${SEED}.log"
 
 sha256sum "$OUT" | tee "$OUT.sha256"
-if [ -n "${HF_REPO:-}" ]; then
-  uvx --from huggingface_hub huggingface-cli upload "$HF_REPO" "$OUT" "$(basename "$OUT")"
-  uvx --from huggingface_hub huggingface-cli upload "$HF_REPO" "$OUT.sha256" "$(basename "$OUT").sha256"
-fi
+rclone copy "$OUT" "$GDRIVE_DEST" && rclone copy "$OUT.sha256" "$GDRIVE_DEST"
+rclone ls "$GDRIVE_DEST" | grep "$(basename "$OUT")"
