@@ -1,0 +1,89 @@
+[
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp5.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 5.005738666520334,
+    "fixed": {
+      "nll": 1.5624673989621722,
+      "decisions": 956192,
+      "event_count": 65536,
+      "dt_acc": 0.759124755859375,
+      "kind_acc": 0.8526611328125,
+      "trade_off_acc": 0.9758404627063502,
+      "trade_size_acc": 0.0677792505121099,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.4348910347154671,
+      "frame_size_acc": 0.4927824415491598,
+      "frame_exact": 0.00012368583797155226,
+      "component_nll": {
+        "dt": 0.8755498519167304,
+        "kind": 0.4853612184524536,
+        "trade_off": 0.18989634982131018,
+        "trade_size": 3.5584654871821906,
+        "overflow": 3.1247113911399296e-05,
+        "frame_detail": 1.762692294301995
+      },
+      "frames": 32340,
+      "decoded_frames": 32340
+    }
+  },
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp10.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 10.002068049832923,
+    "fixed": {
+      "nll": 1.666884080452723,
+      "decisions": 956192,
+      "event_count": 65536,
+      "dt_acc": 0.7743072509765625,
+      "kind_acc": 0.85369873046875,
+      "trade_off_acc": 0.8978491384504157,
+      "trade_size_acc": 0.0771177250271117,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.37645812079369223,
+      "frame_size_acc": 0.528249198129112,
+      "frame_exact": 0.00018552875695732838,
+      "component_nll": {
+        "dt": 0.8582544596865773,
+        "kind": 0.48010225547477603,
+        "trade_off": 0.27804593813535694,
+        "trade_size": 4.060512985374744,
+        "overflow": 3.3374970240879e-05,
+        "frame_detail": 1.8752055318898957
+      },
+      "frames": 32340,
+      "decoded_frames": 32340
+    }
+  },
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp20.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 20.004136099665846,
+    "fixed": {
+      "nll": 1.5416046772722554,
+      "decisions": 956192,
+      "event_count": 65536,
+      "dt_acc": 0.7705841064453125,
+      "kind_acc": 0.8532257080078125,
+      "trade_off_acc": 0.9297204482467767,
+      "trade_size_acc": 0.07669598746836968,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.4167121402643005,
+      "frame_size_acc": 0.6077043005639753,
+      "frame_exact": 0.00018552875695732838,
+      "component_nll": {
+        "dt": 0.8496588449925184,
+        "kind": 0.4715484636835754,
+        "trade_off": 0.24200506023016732,
+        "trade_size": 4.1411685872356605,
+        "overflow": 3.5595569480844094e-05,
+        "frame_detail": 1.7098003196230012
+      },
+      "frames": 32340,
+      "decoded_frames": 32340
+    }
+  }
+]

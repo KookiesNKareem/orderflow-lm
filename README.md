@@ -41,6 +41,17 @@ The corpus uses the free first day of each month from Tardis.dev for Binance
 USD-margined perpetual futures. The paper reports BTCUSDT, ETHUSDT, and SOLUSDT
 from 2021 through mid-2026 with a strictly walk-forward July 2026 holdout.
 
+## Live data
+
+Live Binance recorder shards can be converted to the same reset-safe normalized
+event schema used by the event model:
+
+```bash
+uv run python scripts/reconstruct_live_binance.py \
+  --raw data/raw \
+  --out data/normalized/SOLUSDT/2026-07-26.parquet
+```
+
 ## Paper
 
 Regenerate the figures and compile the manuscript with:

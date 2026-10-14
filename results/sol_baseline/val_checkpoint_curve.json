@@ -1,0 +1,89 @@
+[
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp5.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 5.005738666520334,
+    "fixed": {
+      "nll": 1.1063942416100978,
+      "decisions": 511802,
+      "event_count": 65536,
+      "dt_acc": 0.71112060546875,
+      "kind_acc": 0.777740478515625,
+      "trade_off_acc": 0.9610346474019639,
+      "trade_size_acc": 0.12268792426978888,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.664192858202052,
+      "frame_size_acc": 0.5185188165985256,
+      "frame_exact": 0.0006334581053843939,
+      "component_nll": {
+        "dt": 1.0495226737111807,
+        "kind": 0.5823161425068974,
+        "trade_off": 0.1952890092540452,
+        "trade_size": 2.7930587613657596,
+        "overflow": 0.00010498676662516464,
+        "frame_detail": 1.181010894273094
+      },
+      "frames": 17365,
+      "decoded_frames": 17365
+    }
+  },
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp10.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 10.002068049832923,
+    "fixed": {
+      "nll": 1.0303679192664472,
+      "decisions": 511802,
+      "event_count": 65536,
+      "dt_acc": 0.724365234375,
+      "kind_acc": 0.797393798828125,
+      "trade_off_acc": 0.9668057544995952,
+      "trade_size_acc": 0.16007556413609847,
+      "overflow_acc": 0.999769651598042,
+      "frame_loc_acc": 0.6887520566033739,
+      "frame_size_acc": 0.5702041013424332,
+      "frame_exact": 5.7587100489490355e-05,
+      "component_nll": {
+        "dt": 1.0031362427398562,
+        "kind": 0.5484028938226402,
+        "trade_off": 0.16880941762197818,
+        "trade_size": 2.6479594666656285,
+        "overflow": 0.0005730609402270747,
+        "frame_detail": 1.0859220656071176
+      },
+      "frames": 17365,
+      "decoded_frames": 17365
+    }
+  },
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp20.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 20.004136099665846,
+    "fixed": {
+      "nll": 0.998193133648364,
+      "decisions": 511802,
+      "event_count": 65536,
+      "dt_acc": 0.725799560546875,
+      "kind_acc": 0.796142578125,
+      "trade_off_acc": 0.9663490481825164,
+      "trade_size_acc": 0.16682236200203443,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.6992804536178566,
+      "frame_size_acc": 0.5943163892734121,
+      "frame_exact": 0.00017276130146847107,
+      "component_nll": {
+        "dt": 0.9662391012534499,
+        "kind": 0.5413805162534118,
+        "trade_off": 0.1546772504292848,
+        "trade_size": 2.717622384642731,
+        "overflow": 0.0002772402495634923,
+        "frame_detail": 1.0250335260321384
+      },
+      "frames": 17365,
+      "decoded_frames": 17365
+    }
+  }
+]

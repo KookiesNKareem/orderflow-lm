@@ -1,0 +1,77 @@
+[
+  {
+    "checkpoint": "checkpoints/sol_baseline/sol_25m_local_book_seed1337.tpp20.pt",
+    "mode": "local-book",
+    "seed": 1337,
+    "tokens_per_param": 20.004136099665846,
+    "fixed": {
+      "nll": 0.998193133648364,
+      "decisions": 511802,
+      "event_count": 65536,
+      "dt_acc": 0.725799560546875,
+      "kind_acc": 0.796142578125,
+      "trade_off_acc": 0.9663490481825164,
+      "trade_size_acc": 0.16682236200203443,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.6992804536178566,
+      "frame_size_acc": 0.5943163892734121,
+      "frame_exact": 0.00017276130146847107,
+      "component_nll": {
+        "dt": 0.9662391012534499,
+        "kind": 0.5413805162534118,
+        "trade_off": 0.1546772504292848,
+        "trade_size": 2.717622384642731,
+        "overflow": 0.0002772402495634923,
+        "frame_detail": 1.0250335260321384
+      },
+      "frames": 17365,
+      "decoded_frames": 17365
+    },
+    "book_zero": {
+      "nll": 1.5407255710429766,
+      "decisions": 511802,
+      "event_count": 65536,
+      "dt_acc": 0.723236083984375,
+      "kind_acc": 0.79296875,
+      "trade_off_acc": 0.9679890390483901,
+      "trade_size_acc": 0.07483755786676631,
+      "overflow_acc": 0.9952202706593724,
+      "frame_loc_acc": 0.5215263704216302,
+      "frame_size_acc": 0.3460547918745775,
+      "frame_exact": 0.00028793550244745177,
+      "component_nll": {
+        "dt": 0.9696700507774949,
+        "kind": 0.5465236427262425,
+        "trade_off": 0.24167094203232062,
+        "trade_size": 4.155683779854581,
+        "overflow": 0.008844370454798642,
+        "frame_detail": 1.7871217144684166
+      },
+      "frames": 17365,
+      "decoded_frames": 17365
+    },
+    "book_shifted": {
+      "nll": 1.194454404868118,
+      "decisions": 511802,
+      "event_count": 65536,
+      "dt_acc": 0.7198333740234375,
+      "kind_acc": 0.7915191650390625,
+      "trade_off_acc": 0.9665151232069087,
+      "trade_size_acc": 0.1637292146727284,
+      "overflow_acc": 1.0,
+      "frame_loc_acc": 0.6988002852764852,
+      "frame_size_acc": 0.35411100022534847,
+      "frame_exact": 5.7587100489490355e-05,
+      "component_nll": {
+        "dt": 0.9908678838983178,
+        "kind": 0.5547397611662745,
+        "trade_off": 0.17145092145676644,
+        "trade_size": 2.7440205692999937,
+        "overflow": 0.00036448679291615046,
+        "frame_detail": 1.3840893926901312
+      },
+      "frames": 17365,
+      "decoded_frames": 17365
+    }
+  }
+]
